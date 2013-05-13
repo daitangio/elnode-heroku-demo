@@ -7,8 +7,6 @@
 (package-initialize)
 (message "packages initialized")
 
-(package-refresh-contents)
-(message "packages refreshed")
 
 (setq
  elnode-init-port
@@ -17,8 +15,14 @@
 (setq elnode-do-init nil)
 (message "elnode init done")
 
-(package-install 'elnode)
-(message "elnode installed")
+;; TODO Put here your preferred elnode version
+(if (package-installed-p 'elnode '(0 9 9 6 9))
+    (message "ELNODE Already installed OK") 
+  (package-refresh-contents)
+  (message "packages refreshed")
+  (package-install 'elnode)
+  (message "elnode installed")
+)
 
 (defun handler (httpcon)
   "Demonstration function"

@@ -1,0 +1,69 @@
+#!/bin/bash
+set -x -e
+
+
+#HEROKU LIKE ENV
+# Push dev env...
+export PORT=7777
+
+
+doWork(){
+    # compatibility variable for SSH due to JJ's PC SETUP
+    export USERPROFILE=$HOM
+    heroku maintenance:on
+    git push heroku europe
+    heroku maintenance:off
+    heroku ps:scale web=1 --app immense-refuge-1686
+    # force it...
+    curl http://immense-refuge-1686.herokuapp.com/heartbeat
+}
+
+help(){
+    echo Suported commands:
+    echo 'elnoder  {deploy|run}'
+}
+
+runElnodeLocally(){
+    # --daemon unsupported under win32 :(
+    # set http_proxy if it is needed
+    # -Q equals:  -q --no-site-file --no-site-lisp --no-splash
+    date
+    exec emacs -Q  --execute '(switch-to-buffer "*Messages*")'  --load start-elnode.el  
+}
+
+#trap 'echo "Killed" $(date)' SIGKILL 
+#trap 'echo "Killed" $(date)' EXIT
+#trap 'echo $(date) DEBUG' DEBUG
+
+trap 'echo "?Elnode Heartbeat failed" $(date)' SIGKILL
+
+cmd=$*
+shift 1
+case $cmd in
+    deploy)
+	time doWork
+	;;
+    run) 
+	date
+	# One minute is the expected boot time. The following probe will check that
+	# to be elegant, the prob will use $$ as pid, because 
+	# runElnodeLocally will "exec" the shell to emacs
+	# See http://stackoverflow.com/questions/687948/timeout-a-command-in-bash-without-unnecessary-delay
+	(
+	    sleep 10
+	    date
+	    export http_proxy= 
+	    echo "Checking Elnode..."
+	    if (curl -i http://localhost:$PORT/  | grep 'HTTP/1.1 200'); then 
+		echo OK
+	    else 
+		echo "FATAL ERROR killing $$" 
+		# SIGTERM does not work...
+		kill -s SIGKILL $$
+	    fi
+	    
+	) &
+	runElnodeLocally 
+	;;
+    *) help
+esac
