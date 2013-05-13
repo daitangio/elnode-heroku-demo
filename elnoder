@@ -5,18 +5,26 @@ set -x -e
 #HEROKU LIKE ENV
 # Push dev env...
 export PORT=7777
-
+APP=immense-refuge-1686
 
 doWork(){
     # compatibility variable for SSH due to JJ's PC SETUP
-    export USERPROFILE=$HOM
-    heroku maintenance:on
-    git push heroku europe
-    heroku maintenance:off
-    heroku ps:scale web=1 --app immense-refuge-1686
-    # force it...
-    curl http://immense-refuge-1686.herokuapp.com/heartbeat
+    export USERPROFILE=$HOME
+    # Disable http proxy if needed...
+    #unset http_proxy
+    #unset https_proxy
+    #heroku maintenance:on  --app $APP
+    git push europe master
+    #heroku maintenance:off --app $APP
+    heroku ps:scale web=1 --app $APP
+    # While waiting setup...
+    git push origin master
+    sleep 2
+    curl -i http://$APP.herokuapp.com/
+    #curl http://$APP.herokuapp.com/heartbeat
 }
+
+
 
 help(){
     echo Suported commands:
@@ -43,7 +51,16 @@ case $cmd in
     deploy)
 	time doWork
 	;;
-    run) 
+    stop)
+	heroku ps:scale web=0 --app $APP
+	;;
+    status)
+	heroku ps --app $APP
+	;;
+    run)
+	runElnodeLocally 
+	;;
+    test) 
 	date
 	# One minute is the expected boot time. The following probe will check that
 	# to be elegant, the prob will use $$ as pid, because 
@@ -52,9 +69,9 @@ case $cmd in
 	(
 	    sleep 10
 	    date
-	    export http_proxy= 
+	    unset http_proxy
 	    echo "Checking Elnode..."
-	    if (curl -i http://localhost:$PORT/  | grep 'HTTP/1.1 200'); then 
+	    if (curl -i http://localhost:$PORT/heartbeat/devenv  | grep 'HTTP/1.1 200'); then 
 		echo OK
 	    else 
 		echo "FATAL ERROR killing $$" 

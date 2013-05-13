@@ -51,3 +51,7 @@ weblink to your app.
 
 Heroku has all sorts of options for scaling and performance and
 database hosting. Could be an interesting platform for Elnode.
+
+== Extra Stuff ==
+
+This version has been modified to offer faster startup (no need re-downlading)

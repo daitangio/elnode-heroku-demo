@@ -24,17 +24,37 @@
   (message "elnode installed")
 )
 
-(defun handler (httpcon)
-  "Demonstration function"
+                      
+
+(defun heartbeat (httpcon)
+  "Heart Beat Function: exposes environment too"
   (elnode-http-start httpcon "200"
                      '("Content-type" . "text/html")
                      `("Server" . ,(concat "GNU Emacs " emacs-version)))
   (elnode-http-return httpcon
-                      "<html><body><h1>Hello from EEEMACS.</h1></body></html>"))
+		      (concat "<html><body><h1>Hello from ElNode.</h1>"
+			      "<p>Env as seen by Emacs:</p><hr /><br/>"
+			      "<ul>"
+			      (mapconcat  (lambda (x) (concat "<li>" x)) (sort process-environment 'string<) "\n")
+			      "</ul>"
+			      "<br />"
+			      "</body></html>")))
 
+;; TODO: ADD a facility to show *Messages* Buffer as a primary log trace
+
+(defvar
+   eldos-app-routes
+   '(
+     (".*//heartbeat.*" . heartbeat)
+     ("^.*//\\(.*\\)" . elnode-webserver)))
+
+(defun root-handler (httpcon)
+	  (elnode-hostpath-dispatcher httpcon eldos-app-routes))	
+
+(elnode-start 'root-handler :port elnode-init-port :host elnode-init-host)
 ;;(elnode-start 'handler :port elnode-init-port :host elnode-init-host)
-(elnode-init)
-
+;;(elnode-init)
+(message "Try Elnode HeartBeat to check status")
 (while t
   (accept-process-output nil 1))
 
