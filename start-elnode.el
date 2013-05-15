@@ -11,6 +11,10 @@
 (setq
  elnode-init-port
  (string-to-number (or (getenv "PORT") "8080")))
+
+(defconst DocRoot
+  (concat default-directory "./public_html"))
+
 (setq elnode-init-host "0.0.0.0")
 (setq elnode-do-init nil)
 (message "elnode init done")
@@ -30,23 +34,37 @@
   "Heart Beat Function: exposes environment too"
   (elnode-http-start httpcon "200"
                      '("Content-type" . "text/html")
+		     '("X-Framework"  . "DaitanElnodeV1")
                      `("Server" . ,(concat "GNU Emacs " emacs-version)))
   (elnode-http-return httpcon
 		      (concat "<html><body><h1>Hello from ElNode.</h1>"
 			      "<p>Env as seen by Emacs:</p><hr /><br/>"
 			      "<ul>"
-			      (mapconcat  (lambda (x) (concat "<li>" x)) (sort process-environment 'string<) "\n")
+			      ;; Not sure in-place sorting is a GoodThing(TM) 
+			      (mapconcat  (lambda (x) (concat "<li>" x)) process-environment  "\n")
 			      "</ul>"
 			      "<br />"
 			      "</body></html>")))
 
-;; TODO: ADD a facility to show *Messages* Buffer as a primary log trace
+
+;; Customize elnode-webserver-docroot
+(require  'elnode)
+(custom-set-variables
+  '(elnode-webserver-docroot DocRoot)
+)
 
 (defvar
    eldos-app-routes
    '(
-     (".*//heartbeat.*" . heartbeat)
-     ("^.*//\\(.*\\)" . elnode-webserver)))
+     (".*//heartbeat\\(.*\\)" . heartbeat)
+     ;; ("/$" . (elnode-webserver-handler-maker DocRoot))
+     ))
+
+;; Init by hand lisplet engine
+(add-to-list 'load-path (concat default-directory "./lisp"))
+(load "lisplet-engine")
+(lisplet-init eldos-app-routes)
+
 
 (defun root-handler (httpcon)
 	  (elnode-hostpath-dispatcher httpcon eldos-app-routes))	
@@ -54,7 +72,7 @@
 (elnode-start 'root-handler :port elnode-init-port :host elnode-init-host)
 ;;(elnode-start 'handler :port elnode-init-port :host elnode-init-host)
 ;;(elnode-init)
-(message "Try Elnode HeartBeat to check status")
+(message "Elnode Ready. DocRoot:%s" elnode-webserver-docroot )
 (while t
   (accept-process-output nil 1))
 

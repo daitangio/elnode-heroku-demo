@@ -7,28 +7,43 @@ set -x -e
 export PORT=7777
 APP=immense-refuge-1686
 
-doWork(){
+doHerokuDeploy(){
     # compatibility variable for SSH due to JJ's PC SETUP
     export USERPROFILE=$HOME
-    # Disable http proxy if needed...
-    #unset http_proxy
-    #unset https_proxy
     #heroku maintenance:on  --app $APP
     git push europe master
     #heroku maintenance:off --app $APP
     heroku ps:scale web=1 --app $APP
     # While waiting setup...
     git push origin master
-    sleep 2
-    curl -i http://$APP.herokuapp.com/
-    #curl http://$APP.herokuapp.com/heartbeat
+    if heroku logs --num 25  --app $APP | grep -i Try ; then
+	echo "Just Here"
+    else
+	curl -i http://$APP.herokuapp.com/ &
+	echo "Waiting fireup"
+	wait
+    fi
+    curl -i http://$APP.herokuapp.com/heartbeat
 }
 
 
 
 help(){
-    echo Suported commands:
-    echo 'elnoder  {deploy|run}'
+    cat <<EOF 
+elnoder <command> [args]
+Suported commands:
+
+ + deploy
+   Deploy on $APP
+ + run
+   Test locally on port 7777
+ + test
+   Like run but only test the heartbeat and then exit
+ + stop
+   Stop $APP remotely
+
+EOF
+
 }
 
 runElnodeLocally(){
@@ -49,10 +64,12 @@ cmd=$*
 shift 1
 case $cmd in
     deploy)
-	time doWork
+	time doHerokuDeploy
 	;;
     stop)
+	heroku logs --num 25  --app $APP
 	heroku ps:scale web=0 --app $APP
+	heroku logs --num 25  --app $APP
 	;;
     status)
 	heroku ps --app $APP
@@ -73,6 +90,8 @@ case $cmd in
 	    echo "Checking Elnode..."
 	    if (curl -i http://localhost:$PORT/heartbeat/devenv  | grep 'HTTP/1.1 200'); then 
 		echo OK
+		curl -i http://localhost:$PORT/heartbeat/devenv
+		kill -s SIGKILL $$		
 	    else 
 		echo "FATAL ERROR killing $$" 
 		# SIGTERM does not work...
@@ -82,5 +101,9 @@ case $cmd in
 	) &
 	runElnodeLocally 
 	;;
-    *) help
+    help)
+	help;;
+    *)set +e +x
+	echo "?Unknown command: $cmd"
+	help;;
 esac
