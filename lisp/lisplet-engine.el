@@ -11,15 +11,15 @@
 ;; (autoload 'hello-lisplet
 ;;        "hello-lisplet" "Small lisplet example" t)
 
-(defun lisplet-init (app-routes)
-  (add-to-list 'app-routes 
+(defun lisplet-init ()
+  (setq app-routes 
 	       '("^.*//\\(.*\\)" . elnode-webserver))
-  ;; Now checks and load lisplet
-  (directory-files )
+  ;; Now checks and load lisplet 
   (let ((default-directory (concat default-directory "../lisplet")))
     (message "%s" (pp-to-string (file-expand-wildcards "*.el")))
     ;; Scan files, load them and go
     )
+  app-routes
 )
 
 (provide 'lisplet-engine)
@@ -28,7 +28,9 @@
 (when (eq (car eval-buffer-list) (current-buffer))
   (progn
     (require 'ert)
-    (ert-deftest lispletloader ()
+    (ert-deftest lispletloader ()      
+      (should (equal '("^.*//\\(.*\\)" . elnode-webserver)
+		     (lisplet-init)))
       )
 
     (ert ".*lisplet.*" nil nil)

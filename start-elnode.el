@@ -60,10 +60,15 @@
      ;; ("/$" . (elnode-webserver-handler-maker DocRoot))
      ))
 
-;; Init by hand lisplet engine
+;; Force byte compilation of lisp directory to be in sync
+(byte-recompile-directory  (concat default-directory "./lisp") 0 t)
+(byte-recompile-directory  (concat default-directory "./lisplet") 0 t)
 (add-to-list 'load-path (concat default-directory "./lisp"))
+;; Manually init lisplet engine: it will recursive init 
+;; "lisplet" 
 (load "lisplet-engine")
-(lisplet-init eldos-app-routes)
+(add-to-list 'eldos-app-routes (lisplet-init))
+
 
 
 (defun root-handler (httpcon)
